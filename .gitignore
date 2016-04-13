@@ -1,0 +1,147 @@
+#include <stdio.h>
+#include <stdlib.h>  // for atof() 
+#include <ctype.h>
+
+#define MAXOP    100 // max size of operand or operator 
+#define NUMBER   '0' // signal that a number was found 
+
+char errbuf[BUFSIZ];
+
+int getop(char []);
+void push(double);
+double pop(void);
+
+error(char *string)
+{
+char *Prog="SchemeInterpreter";
+printf("%s: ERROR: %s\n", Prog, string);
+}
+ 
+main()
+{
+	int type;
+	int mod;
+	double op2;
+	char s[MAXOP], errbuf[100];
+	char start = '(';
+	char end = ')';
+
+	while ((type = getop(s)) != EOF) {
+	    switch(type) {
+            case NUMBER:
+	        push(atof(s));
+	        break;
+	    case '(':
+	        push(start);
+	        break;	
+            case '+':
+		push(pop() + pop());
+	        break;
+	    case '*':
+		push(pop() * pop());
+	        break;
+	    case '-':
+	        op2 = pop();
+	        push(pop() - op2);
+	        break;
+	    case '/':
+		op2 = pop();
+	        if (op2 != 0.0)
+	            push(pop() / op2);
+		else
+		    error("zero divisor");
+		    break;
+	    case '%':
+		 mod = pop();
+		 if (mod != 0)
+		     push((int)pop() % (int)mod);
+		 else
+		     error("zero divisor");
+	         break;
+	    case ')':
+	        push(end);
+	        break;
+	    //case "let":
+
+	    //case "quote":
+
+       	    //case "if":
+
+	    case '\n':
+		printf("\t%.8g\n", pop());
+	        break;
+	    default:
+	        sprintf(errbuf, "unknown command %s", s);
+			error(errbuf);
+        }  
+	}
+	return 0;
+}
+
+#define MAXVAL	 100     
+
+int sp = 0;          	 
+double val[MAXVAL];     
+
+void push(double f)    
+{
+	if (sp < MAXVAL)
+	   val[sp++] = f;
+	else {
+		sprintf(errbuf, "stack full, can't push %g\n", f);
+		error(errbuf);
+	}
+}
+
+double pop(void)       
+{
+	if (sp > 0)
+	    return val[--sp];
+	else {
+	    error("stack empty");
+	    return 0.0;
+	}
+}
+
+int getch(void);
+void ungetch(int);
+
+int getop(char s[])     // getop: get next operator or numeric operand 
+{
+	int i, c;
+
+	while ((s[0] = c = getch()) == ' ' || c == '\t')
+	    ;
+	s[1] = '\0';
+	if (!isdigit(c) && c != '.')
+	    return c;   // not a number
+	i = 0;
+	if (isdigit(c)) // collect integer part
+	    while (isdigit(s[++i] = c = getch()))
+		;
+	if (c == '.')   // collect fraction part
+	    while (isdigit(s[++i] = c = getch()))
+		;
+	s[i] = '\0';
+	if (c != EOF)
+	    ungetch(c);
+	return NUMBER;
+} 
+
+#define BUFSIZE 100
+
+char buf[BUFSIZE];	
+int bufp = 0;
+
+int getch(void)
+{
+    return (bufp > 0) ? buf[--bufp] : getchar();
+}
+
+void ungetch(int c)
+{
+    if (bufp >= BUFSIZE)
+		error("ungetch: too many characters\n");
+    else
+	buf[bufp++] = c;
+}
